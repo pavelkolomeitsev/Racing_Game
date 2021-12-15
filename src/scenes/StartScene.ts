@@ -46,7 +46,7 @@ export default class StartScene extends Phaser.Scene {
         this._client.init();
         // listen to event with the key "game"
         this._client.on("game", () => {
-            this.scene.start("game-scene"); // then run the game
+            this.scene.start("game-scene", {player: this._client}); // run the game (GameScene) and pass client-object
          });
     }
 }

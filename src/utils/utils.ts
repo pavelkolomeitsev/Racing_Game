@@ -10,6 +10,7 @@ export enum TURNS {
     LEFT = -1
 };
 
+export const HOST: string = "http://localhost:8080";
 export const SPEED = 5;
 export const ACCELERATION = 0.1;
 export const AMOUNT_OF_LAPS = 3;
@@ -20,6 +21,17 @@ export const ROADS_FRICTION = {
     road: 1,
     ground: 0.5,
     sand: 0.4
+};
+
+export const CARS = {
+    RED: {
+        sprite: "car_red_1",
+        position: "player"
+    },
+    BLUE: {
+        sprite: "car_blue_1",
+        position: "enemy"
+    }
 };
 
 export default class Checkpoint extends Phaser.Geom.Rectangle{

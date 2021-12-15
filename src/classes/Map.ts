@@ -94,9 +94,9 @@ export default class Map {
         });
     }
 
-    getPlayer(): Phaser.Types.Tilemaps.TiledObject {
+    getPlayer(name: string): Phaser.Types.Tilemaps.TiledObject {
         // find a player object in tilemap
-        return this.tilemap.findObject("player", playerObject => playerObject.name === "player");
+        return this.tilemap.findObject(name, playerObject => playerObject.name === name);
     }
 
     getTileFriction(car: Phaser.Physics.Matter.Sprite): number {

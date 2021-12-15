@@ -2002,7 +2002,9 @@ var HOST = "http://localhost:8080";
 var Client = (function (_super) {
     __extends(Client, _super);
     function Client() {
-        return _super.call(this) || this;
+        var _this = _super.call(this) || this;
+        _this._isFirst = false;
+        return _this;
     }
     Client.prototype.init = function () {
         var _this = this;
@@ -2013,7 +2015,10 @@ var Client = (function (_super) {
         socket.on("disconnect", function () {
             console.log("Client disconnected");
         });
-        socket.on("game-start", function () {
+        socket.on("game-start", function (data) {
+            if (data && data.first) {
+                _this._isFirst = data.first;
+            }
             _this.emit("game");
         });
     };
@@ -2105,8 +2110,8 @@ var Map = (function () {
             sprite.setSensor(true);
         });
     };
-    Map.prototype.getPlayer = function () {
-        return this.tilemap.findObject("player", function (playerObject) { return playerObject.name === "player"; });
+    Map.prototype.getPlayer = function (name) {
+        return this.tilemap.findObject(name, function (playerObject) { return playerObject.name === name; });
     };
     Map.prototype.getTileFriction = function (car) {
         for (var roadType in utils_1.ROADS_FRICTION) {
@@ -2138,14 +2143,14 @@ exports["default"] = Map;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 var utils_1 = __webpack_require__(/*! ../utils/utils */ "./src/utils/utils.ts");
 var Player = (function () {
-    function Player(scene, map) {
+    function Player(scene, map, config) {
         this._scene = scene;
         this._map = map;
         this._cursor = this._scene.input.keyboard.createCursorKeys();
         this._velocity = 0;
         this._checkpoint = 0;
-        var player = this._map.getPlayer();
-        this.car = this._scene.matter.add.sprite(player.x, player.y, "objects", "car_red_1");
+        var player = this._map.getPlayer(config.position);
+        this.car = this._scene.matter.add.sprite(player.x, player.y, "objects", config.sprite);
         this.car.setFixedRotation();
     }
     Object.defineProperty(Player.prototype, "direction", {
@@ -2492,22 +2497,31 @@ var GameScene = (function (_super) {
     function GameScene() {
         return _super.call(this, { key: "game-scene" }) || this;
     }
+    GameScene.prototype.init = function (data) {
+        if (data.player) {
+            this._client = data.player;
+        }
+    };
     GameScene.prototype.preload = function () {
         this.add.sprite(0, 0, "background").setOrigin(0);
     };
     GameScene.prototype.create = function () {
         var _this = this;
         this._map = new Map_1.default(this);
-        this._player = new Player_1.default(this, this._map);
+        var cars = this.getCarsConfig();
+        this._player1 = new Player_1.default(this, this._map, cars.player1);
+        if (this._client) {
+            this._player2 = new Player_1.default(this, this._map, cars.player2);
+        }
         this._stats = new Stats_1.default(utils_1.AMOUNT_OF_LAPS);
         this._statsPanel = new StatsPanel_1.default(this, this._stats);
         this._statsPopup = new StatsPopup_1.default(this, this._stats);
         this.cameras.main.setBounds(0, 0, this._map.tilemap.widthInPixels, this._map.tilemap.heightInPixels);
-        this.cameras.main.startFollow(this._player.car);
-        this._player.car.on("lap", this.onLapComplete, this);
+        this.cameras.main.startFollow(this._player1.car);
+        this._player1.car.on("lap", this.onLapComplete, this);
         this.matter.world.on("collisionactive", function (event, oilObj, carObj) {
-            if (oilObj.gameObject.frame.name === "oil" && carObj.gameObject === _this._player.car) {
-                _this._player.slide();
+            if (oilObj.gameObject.frame.name === "oil" && carObj.gameObject === _this._player1.car) {
+                _this._player1.slide();
             }
         });
     };
@@ -2517,9 +2531,16 @@ var GameScene = (function (_super) {
             this._statsPopup.showPopup();
         }
     };
+    GameScene.prototype.getCarsConfig = function () {
+        var config = { player1: utils_1.CARS.RED, player2: utils_1.CARS.BLUE };
+        if (this._client && !this._client._isFirst) {
+            config = { player1: utils_1.CARS.BLUE, player2: utils_1.CARS.RED };
+        }
+        return config;
+    };
     GameScene.prototype.update = function (time, delta) {
         this._stats.update(delta);
-        this._player.move();
+        this._player1.move();
         this._statsPanel.render();
     };
     return GameScene;
@@ -2643,7 +2664,7 @@ var StartScene = (function (_super) {
         this._client = new Client_1.default();
         this._client.init();
         this._client.on("game", function () {
-            _this.scene.start("game-scene");
+            _this.scene.start("game-scene", { player: _this._client });
         });
     };
     return StartScene;
@@ -2730,7 +2751,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ROADS_FRICTION = exports.GRASS_FRICTION = exports.SLIDE_ANGLE = exports.AMOUNT_OF_LAPS = exports.ACCELERATION = exports.SPEED = exports.TURNS = exports.DIRECTIONS = void 0;
+exports.CARS = exports.ROADS_FRICTION = exports.GRASS_FRICTION = exports.SLIDE_ANGLE = exports.AMOUNT_OF_LAPS = exports.ACCELERATION = exports.SPEED = exports.TURNS = exports.DIRECTIONS = void 0;
 var DIRECTIONS;
 (function (DIRECTIONS) {
     DIRECTIONS[DIRECTIONS["NONE"] = 0] = "NONE";
@@ -2754,6 +2775,16 @@ exports.ROADS_FRICTION = {
     road: 1,
     ground: 0.5,
     sand: 0.4
+};
+exports.CARS = {
+    RED: {
+        sprite: "car_red_1",
+        position: "player"
+    },
+    BLUE: {
+        sprite: "car_blue_1",
+        position: "enemy"
+    }
 };
 var Checkpoint = (function (_super) {
     __extends(Checkpoint, _super);

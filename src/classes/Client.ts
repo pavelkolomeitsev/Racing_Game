@@ -1,8 +1,10 @@
 import io from "socket.io-client";
-
-const HOST: string = "http://localhost:8080";
+import { HOST } from "../utils/utils";
 
 export default class Client extends Phaser.Events.EventEmitter {
+
+    public _isFirst: boolean = false;
+
     constructor() {
         super();
     }
@@ -17,8 +19,11 @@ export default class Client extends Phaser.Events.EventEmitter {
             console.log("Client disconnected");
         });
         // socket object listens to self-emitted event "game-start" and run the callback
-        socket.on("game-start", () => {
-            this.emit("game"); // it invokes an event with the key "game"
+        socket.on("game-start", (data: any) => {
+            if (data && data.first) {
+                this._isFirst = data.first; // make this player first (red car)
+            }
+            this.emit("game"); // it invokes an event with the key "game" in the "StartScene"
         });
     }
 }

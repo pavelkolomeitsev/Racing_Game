@@ -10,15 +10,15 @@ export default class Player {
     // private _laps: number;
     public car: Phaser.Physics.Matter.Sprite;
 
-    constructor(scene: Phaser.Scene, map: Map) {
+    constructor(scene: Phaser.Scene, map: Map, config: any) {
         this._scene = scene;
         this._map = map;
         this._cursor = this._scene.input.keyboard.createCursorKeys(); // take control from keyboard, exactly up and down keys
         this._velocity = 0; // current car`s direction
         this._checkpoint = 0;
         // this._laps = 0;
-        const player = this._map.getPlayer();
-        this.car = this._scene.matter.add.sprite(player.x, player.y, "objects", "car_red_1"); // add sprite to the scene
+        const player = this._map.getPlayer(config.position);
+        this.car = this._scene.matter.add.sprite(player.x, player.y, "objects", config.sprite); // add sprite to the scene
         this.car.setFixedRotation(); // avoid the car`s spinning on its axis
     }
 
