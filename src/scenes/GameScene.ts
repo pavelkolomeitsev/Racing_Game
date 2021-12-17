@@ -37,6 +37,13 @@ export default class GameScene extends Phaser.Scene {
         // create second player
         if (this._client) {
             this._player2 = new Player(this, this._map, cars.player2);
+            // after creating/connecting second player set car2`s sprite position on the map
+            // we are listening to event "data"
+            this._client.on("data", (data: any) => {
+                this._player2.car.setX(data.x);
+                this._player2.car.setY(data.y);
+                this._player2.car.setAngle(data.angle);
+            });
         }
         this._stats = new Stats(AMOUNT_OF_LAPS);
         this._statsPanel = new StatsPanel(this, this._stats);
@@ -84,5 +91,18 @@ export default class GameScene extends Phaser.Scene {
         this._stats.update(delta);
         this._player1.move();
         this._statsPanel.render();
+        this.syncMovement();
+    }
+
+    private syncMovement(): void {
+        // only if it`s multiplier game
+        if (this._client) {
+            // send to the server info about car`s position and angle
+            this._client.send({
+                x: this._player1.car.x,
+                y: this._player1.car.y,
+                angle: this._player1.car.angle,
+            });
+        }
     }
 }

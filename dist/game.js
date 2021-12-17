@@ -1998,29 +1998,39 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 var socket_io_client_1 = __importDefault(__webpack_require__(/*! socket.io-client */ "./node_modules/socket.io-client/build/cjs/index.js"));
-var HOST = "http://localhost:8080";
+var utils_1 = __webpack_require__(/*! ../utils/utils */ "./src/utils/utils.ts");
 var Client = (function (_super) {
     __extends(Client, _super);
     function Client() {
         var _this = _super.call(this) || this;
+        _this._sentData = {};
         _this._isFirst = false;
+        _this._socket = (0, socket_io_client_1.default)(utils_1.HOST);
         return _this;
     }
     Client.prototype.init = function () {
         var _this = this;
-        var socket = (0, socket_io_client_1.default)(HOST);
-        socket.on("connect", function () {
+        this._socket.on("connect", function () {
             console.log("Client connected");
         });
-        socket.on("disconnect", function () {
+        this._socket.on("disconnect", function () {
             console.log("Client disconnected");
         });
-        socket.on("game-start", function (data) {
+        this._socket.on("game-start", function (data) {
             if (data && data.first) {
                 _this._isFirst = data.first;
             }
             _this.emit("game");
         });
+        this._socket.on("player2-move", function (data) {
+            _this.emit("data", data);
+        });
+    };
+    Client.prototype.send = function (carsPosition) {
+        if (JSON.stringify(carsPosition) !== JSON.stringify(this._sentData)) {
+            this._sentData = carsPosition;
+            this._socket.emit("player-move", carsPosition);
+        }
     };
     return Client;
 }(Phaser.Events.EventEmitter));
@@ -2512,6 +2522,11 @@ var GameScene = (function (_super) {
         this._player1 = new Player_1.default(this, this._map, cars.player1);
         if (this._client) {
             this._player2 = new Player_1.default(this, this._map, cars.player2);
+            this._client.on("data", function (data) {
+                _this._player2.car.setX(data.x);
+                _this._player2.car.setY(data.y);
+                _this._player2.car.setAngle(data.angle);
+            });
         }
         this._stats = new Stats_1.default(utils_1.AMOUNT_OF_LAPS);
         this._statsPanel = new StatsPanel_1.default(this, this._stats);
@@ -2542,6 +2557,16 @@ var GameScene = (function (_super) {
         this._stats.update(delta);
         this._player1.move();
         this._statsPanel.render();
+        this.syncMovement();
+    };
+    GameScene.prototype.syncMovement = function () {
+        if (this._client) {
+            this._client.send({
+                x: this._player1.car.x,
+                y: this._player1.car.y,
+                angle: this._player1.car.angle,
+            });
+        }
     };
     return GameScene;
 }(Phaser.Scene));
@@ -2751,7 +2776,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.CARS = exports.ROADS_FRICTION = exports.GRASS_FRICTION = exports.SLIDE_ANGLE = exports.AMOUNT_OF_LAPS = exports.ACCELERATION = exports.SPEED = exports.TURNS = exports.DIRECTIONS = void 0;
+exports.CARS = exports.ROADS_FRICTION = exports.GRASS_FRICTION = exports.SLIDE_ANGLE = exports.AMOUNT_OF_LAPS = exports.ACCELERATION = exports.SPEED = exports.HOST = exports.TURNS = exports.DIRECTIONS = void 0;
 var DIRECTIONS;
 (function (DIRECTIONS) {
     DIRECTIONS[DIRECTIONS["NONE"] = 0] = "NONE";
@@ -2766,6 +2791,7 @@ var TURNS;
     TURNS[TURNS["LEFT"] = -1] = "LEFT";
 })(TURNS = exports.TURNS || (exports.TURNS = {}));
 ;
+exports.HOST = "http://localhost:8080";
 exports.SPEED = 5;
 exports.ACCELERATION = 0.1;
 exports.AMOUNT_OF_LAPS = 3;

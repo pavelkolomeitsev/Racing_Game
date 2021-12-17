@@ -7,8 +7,22 @@ module.exports = {
         this.io = socketIO(server);
         // when client makes request to the server, socket listens to it
         this.io.on("connection", clientSocket => { // "socket" - client`s object, it comes from client to the server
+            // socket listens to event "player-move" and trigger onPlayerMove-method
+            clientSocket.on("player-move", data => {
+                this.onPlayerMove(clientSocket, data);
+            });
             this.onConnection(clientSocket);
         });
+    },
+    onPlayerMove(socket, carsPosition) {
+        // in this method we distinguish who is the first, who is the second
+        //  -> the second player`s socket triggers event "player2-move" with opponent`s carPosition
+        // find session sent by first or second player
+        const session = this.sessions.find(session => session.playerOneSocket === socket || session.playerTwoSocket === socket);
+        if (session) {
+            const opponentSocket = session.playerOneSocket === socket ? session.playerTwoSocket : session.playerOneSocket;
+            opponentSocket.emit("player2-move", carsPosition);
+        }
     },
     onConnection(socket) {
         let session = this.getPendingSession(); // find session
